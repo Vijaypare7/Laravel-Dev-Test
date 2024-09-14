@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Category;
+use App\Http\Requests\CreateCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
 
 class CategoryController extends Controller
 {
@@ -27,11 +29,24 @@ class CategoryController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CreateCategoryRequest $request)
     {
-        $request->validate(['name' => 'required']);
-        Category::create($request->all());
-        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+        $validated = $request->validated();
+
+        try {
+
+            Category::create($request->all());
+            return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+
+        } catch (QueryException $e) {
+            \Log::error('SQL Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while creating the category. Please try again.']);
+        } catch (\Exception $e) {
+            \Log::error('General Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An unexpected error occurred. Please try again.']);
+        }
+
+
     }
 
     /**
@@ -53,11 +68,23 @@ class CategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Category $category)
+    public function update(UpdateCategoryRequest $request, Category $category)
     {
-        $request->validate(['name' => 'required']);
-        $category->update($request->all());
-        return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
+        $validated = $request->validated();
+
+        try {
+
+            $category->update($request->all());
+            return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
+
+        } catch (QueryException $e) {
+            \Log::error('SQL Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while creating the category. Please try again.']);
+        } catch (\Exception $e) {
+            \Log::error('General Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An unexpected error occurred. Please try again.']);
+        }
+
     }
 
     /**

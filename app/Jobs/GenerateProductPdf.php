@@ -32,6 +32,11 @@ class GenerateProductPdf implements ShouldQueue
     {
         $pdf = PDF::loadView('pdf.product', ['product' => $this->product]);
 
-        $pdf->save(storage_path('app/public/pdfs/' . $this->product->slug . '.pdf'));
+        $directory = storage_path('app/public/pdfs');
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $pdf->save($directory . '/' . $this->product->slug . '.pdf');
     }
 }

@@ -6,9 +6,12 @@ use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-
 use App\Events\ProductCreated;
 use App\Jobs\GenerateProductPdf;
+use Illuminate\Validation\Rule;
+use Illuminate\Database\QueryException;
+use App\Http\Requests\ProductValidationRequest;
+use App\Http\Requests\UpdateProductRequest;
 
 class ProductController extends Controller
 {
@@ -33,14 +36,9 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ProductValidationRequest $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric',
-            'category_id' => 'required',
-            'images' => 'nullable',
-        ]);
+        $validated = $request->validated();
 
         $data = $request->all();
         if ($request->hasFile('images')) {
@@ -52,15 +50,23 @@ class ProductController extends Controller
             $data['images'] = $fileName;
         }
 
-        $product = Product::create($data);
+        try {
 
-        // Dispatch the event
-        event(new ProductCreated($product));
+            $product = Product::create($data);
 
-        // Dispatch the job to generate PDF
-        GenerateProductPdf::dispatch($product);
+            event(new ProductCreated($product));
+            GenerateProductPdf::dispatch($product);
 
-        return redirect()->route('products.index')->with('success', 'Product created successfully.');
+            return redirect()->route('products.index')->with('success', 'Product created successfully.');
+
+        } catch (QueryException $e) {
+            \Log::error('SQL Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while creating the product. Please try again.']);
+        } catch (\Exception $e) {
+            \Log::error('General Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An unexpected error occurred. Please try again.']);
+        }
+
     }
 
     /**
@@ -85,15 +91,9 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric',
-            'category_id' => 'required',
-            'images' => 'nullable',
-        ]);
-
+        $validated = $request->validated();
         $data = $request->all();
         if ($request->hasFile('images')) {
 
@@ -108,12 +108,23 @@ class ProductController extends Controller
             $file->storeAs('public/products', $fileName);
 
             $data['images'] = $fileName;
-
-            // $data['images'] = $request->file('images')->store('products');
         }
 
-        $product->update($data);
-        return redirect()->route('products.index')->with('success', 'Product updated successfully.');
+
+        try {
+
+            $product->update($data);
+            return redirect()->route('products.index')->with('success', 'Product updated successfully.');
+
+        } catch (QueryException $e) {
+            \Log::error('SQL Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while updating the product. Please try again.']);
+        } catch (\Exception $e) {
+            \Log::error('General Exception: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An unexpected error occurred. Please try again.']);
+        }
+
+        
     }
 
     /**
