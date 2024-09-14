@@ -30,5 +30,6 @@ You can directly use http://127.0.0.1:8000/products and http://127.0.0.1:8000/ca
 ## Logs and PDF
 
 Logs can be found at "\storage\logs" followed by product-create-YYYY-mm-dd.log
+
 PDF can be found at "\public\storage\pdfs" followed by Produc Name.pdf
 
